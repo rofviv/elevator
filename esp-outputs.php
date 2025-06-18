@@ -10,7 +10,7 @@
 -->
 <?php
     session_start();
-    $password_correcta = 'Sistemas2022';
+    $password_correcta = 'Sistemas2022.';
     if (!isset($_SESSION['autenticado']) || $_SESSION['autenticado'] !== true) {
         if (isset($_POST['password'])) {
             if ($_POST['password'] === $password_correcta) {
@@ -92,6 +92,10 @@
     </head>
 <body>
     <h2>ESP Output Control</h2>
+    <div id="status-indicator" style="background: #e8f5e8; padding: 10px; margin: 10px 0; border-radius: 5px; display: none;">
+        <strong>Estado:</strong> <span id="status-text">Actualizando...</span>
+        <span id="last-update"></span>
+    </div>
     <?php echo $html_buttons; ?>
     <br><br>
     <?php echo $html_boards; ?>
@@ -158,6 +162,8 @@
 
         // Función para actualizar el estado de los outputs cada 5 segundos
         function updateOutputsStatus() {
+            showStatus("Actualizando...", "#fff3cd");
+            
             var xhr = new XMLHttpRequest();
             xhr.open("GET", "esp-outputs-action.php?action=get_outputs_status", true);
             
@@ -165,31 +171,91 @@
                 if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
                     try {
                         var outputs = JSON.parse(this.responseText);
+                        console.log("Datos recibidos:", outputs); // Debug
                         updateOutputsUI(outputs);
+                        showStatus("Actualizado correctamente", "#d4edda");
+                        updateLastUpdateTime();
                     } catch (e) {
                         console.log("Error parsing JSON response:", e);
+                        console.log("Response text:", this.responseText); // Debug
+                        showStatus("Error al procesar datos", "#f8d7da");
                     }
+                } else if (this.readyState === XMLHttpRequest.DONE && this.status !== 200) {
+                    console.log("Error en la petición HTTP:", this.status);
+                    showStatus("Error en la petición HTTP: " + this.status, "#f8d7da");
                 }
             }
+            
+            xhr.onerror = function() {
+                console.log("Error de red en la petición AJAX");
+                showStatus("Error de red", "#f8d7da");
+            };
+            
             xhr.send();
+        }
+
+        // Función para mostrar el estado de actualización
+        function showStatus(message, color) {
+            var indicator = document.getElementById("status-indicator");
+            var statusText = document.getElementById("status-text");
+            
+            indicator.style.display = "block";
+            indicator.style.backgroundColor = color;
+            statusText.textContent = message;
+        }
+
+        // Función para actualizar la hora de la última actualización
+        function updateLastUpdateTime() {
+            var lastUpdate = document.getElementById("last-update");
+            var now = new Date();
+            lastUpdate.textContent = " - Última actualización: " + now.toLocaleTimeString();
         }
 
         // Función para actualizar la interfaz de usuario con los nuevos estados
         function updateOutputsUI(outputs) {
+            var changes = 0;
+            console.log("Buscando " + outputs.length + " outputs en el DOM..."); // Debug
+            
             outputs.forEach(function(output) {
                 var checkbox = document.getElementById(output.id);
+                console.log("Buscando checkbox con ID: " + output.id); // Debug
+                
                 if (checkbox) {
-                    if (output.state == "1") {
-                        checkbox.checked = true;
+                    console.log("✓ Checkbox encontrado para ID: " + output.id); // Debug
+                    var currentState = checkbox.checked ? "1" : "0";
+                    console.log("Estado actual: " + currentState + ", Estado nuevo: " + output.state); // Debug
+                    
+                    if (output.state != currentState) {
+                        console.log("🔄 Actualizando output ID " + output.id + " de " + currentState + " a " + output.state); // Debug
+                        checkbox.checked = (output.state == "1");
+                        changes++;
                     } else {
-                        checkbox.checked = false;
+                        console.log("✓ Estado ya está actualizado para ID: " + output.id); // Debug
                     }
+                } else {
+                    console.log("❌ No se encontró checkbox para output ID: " + output.id); // Debug
+                    // Listar todos los checkboxes disponibles para debugging
+                    var allCheckboxes = document.querySelectorAll('input[type="checkbox"]');
+                    console.log("Checkboxes disponibles en el DOM:");
+                    allCheckboxes.forEach(function(cb, index) {
+                        console.log("  " + index + ": ID=" + cb.id + ", checked=" + cb.checked);
+                    });
                 }
             });
+            
+            if (changes > 0) {
+                console.log("✅ Se actualizaron " + changes + " outputs");
+            } else {
+                console.log("ℹ️ No se requirieron cambios en los outputs");
+            }
         }
 
         // Iniciar la actualización automática cada 5 segundos
-        setInterval(updateOutputsStatus, 5000);
+        // console.log("Iniciando actualización automática cada 5 segundos"); // Debug
+        // setInterval(updateOutputsStatus, 5000);
+        
+        // También ejecutar una vez al cargar la página
+        // updateOutputsStatus();
     </script>
 </body>
 </html>

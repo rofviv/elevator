@@ -2,7 +2,7 @@
     $servername = "localhost";
     // Your Database name
     $dbname = "elevator_esp_data";
-    // Your Database user
+    // Your Database users
     $username = "dev";
     // Your Database user password
     $password = "sistemas";
