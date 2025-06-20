@@ -228,6 +228,14 @@
                     if (output.state != currentState) {
                         console.log("🔄 Actualizando output ID " + output.id + " de " + currentState + " a " + output.state); // Debug
                         checkbox.checked = (output.state == "1");
+                        
+                        // Forzar la actualización visual del slider
+                        var slider = checkbox.nextElementSibling;
+                        if (slider && slider.classList.contains('slider')) {
+                            // Trigger a reflow para forzar la actualización del CSS
+                            slider.offsetHeight;
+                        }
+                        
                         changes++;
                     } else {
                         console.log("✓ Estado ya está actualizado para ID: " + output.id); // Debug
@@ -251,11 +259,11 @@
         }
 
         // Iniciar la actualización automática cada 5 segundos
-        // console.log("Iniciando actualización automática cada 5 segundos"); // Debug
-        // setInterval(updateOutputsStatus, 5000);
+        console.log("Iniciando actualización automática cada 5 segundos"); // Debug
+        setInterval(updateOutputsStatus, 5000);
         
         // También ejecutar una vez al cargar la página
-        // updateOutputsStatus();
+        updateOutputsStatus();
     </script>
 </body>
 </html>
